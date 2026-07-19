@@ -98,6 +98,57 @@
     `;
   }
 
+  function renderRules() {
+    const correctLeaf = data.teaPicking.types.find((item) => item.isCorrect);
+    const wrongLeaves = data.teaPicking.types.filter((item) => !item.isCorrect);
+    const wrongLeafText = wrongLeaves
+      .map((item) => `${item.label} ${item.score} 分`)
+      .join("、");
+
+    root.innerHTML = `
+      <section class="screen rules-screen">
+        <div class="screen-header">
+          <p class="eyebrow">開始前</p>
+          <h2>${escapeHtml(data.rules.title)}</h2>
+          <p class="lead">${escapeHtml(data.rules.intro)}</p>
+        </div>
+        <article class="rules-card">
+          <div class="rule-list">
+            <div class="rule-item">
+              <span class="rule-icon" aria-hidden="true">1</span>
+              <div>
+                <h3>採茶關卡</h3>
+                <p>${data.teaPicking.durationSeconds} 秒內點擊「${escapeHtml(correctLeaf.label)}」，後面速度會越來越快。</p>
+              </div>
+            </div>
+            <div class="rule-item">
+              <span class="rule-icon" aria-hidden="true">2</span>
+              <div>
+                <h3>加扣分</h3>
+                <p>點到${escapeHtml(correctLeaf.label)} +${correctLeaf.score} 分，漏採 ${data.teaPicking.missPenalty} 分；點到 ${escapeHtml(wrongLeafText)}。</p>
+              </div>
+            </div>
+            <div class="rule-item">
+              <span class="rule-icon" aria-hidden="true">3</span>
+              <div>
+                <h3>認識花東茶</h3>
+                <p>看完 5 張知識卡後，進入五題測驗。</p>
+              </div>
+            </div>
+            <div class="rule-item">
+              <span class="rule-icon" aria-hidden="true">4</span>
+              <div>
+                <h3>最後成績</h3>
+                <p>總分是採茶分數加問答分數，每題答對 +${data.quiz.pointsPerCorrect} 分。</p>
+              </div>
+            </div>
+          </div>
+        </article>
+        <button class="primary-button" type="button" data-action="play">${escapeHtml(data.rules.startButton)}</button>
+      </section>
+    `;
+  }
+
   function startHarvest() {
     clearTimers();
     sound.prime();
@@ -485,7 +536,8 @@
 
     const action = actionTarget.dataset.action;
 
-    if (action === "start") startHarvest();
+    if (action === "start") renderRules();
+    if (action === "play") startHarvest();
     if (action === "knowledge") {
       state.cardIndex = 0;
       renderKnowledge();

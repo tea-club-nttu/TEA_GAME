@@ -16,6 +16,7 @@
 主要改 `js/data.js`：
 
 - 第一關時間：`teaPicking.durationSeconds`
+- 規則頁文字：`rules`
 - 採茶分數：`teaPicking.types`
 - 掉落加速：`teaPicking.spawnIntervalMs` / `teaPicking.endSpawnIntervalMs`、`teaPicking.itemLifeMs` / `teaPicking.endItemLifeMs`
 - 漏採扣分：`teaPicking.missPenalty`

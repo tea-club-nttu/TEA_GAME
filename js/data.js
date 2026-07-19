@@ -11,6 +11,12 @@ window.TEA_GAME_DATA = {
     intro: "跟著茶香走進花東茶園，採下一心二葉，認識鹿野與舞鶴的特色茶，再用五題小測驗完成迎新挑戰。",
     startButton: "開始遊戲"
   },
+  // 開始玩之前顯示的規則頁文字。
+  rules: {
+    title: "遊戲規則",
+    intro: "先看完採茶與測驗規則，再出發到花東茶園。",
+    startButton: "開始採茶"
+  },
   cta: {
     label: "加入茶道社",
     joinUrl: "#",
