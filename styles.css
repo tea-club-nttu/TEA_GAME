@@ -1,0 +1,751 @@
+:root {
+  --ink: #273126;
+  --muted: #61715d;
+  --moss: #35654b;
+  --leaf: #5f8d4e;
+  --tea: #7a5438;
+  --cedar: #b57a4c;
+  --paper: #fffaf0;
+  --cream: #f6eed9;
+  --sky: #dfeee3;
+  --gold: #d2a13e;
+  --clay: #b96443;
+  --danger: #a84435;
+  --shadow: 0 18px 42px rgba(46, 55, 36, 0.18);
+  --radius: 8px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  min-height: 100%;
+  background: var(--cream);
+}
+
+body {
+  min-height: 100svh;
+  margin: 0;
+  color: var(--ink);
+  font-family: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif;
+  letter-spacing: 0;
+  background:
+    linear-gradient(180deg, rgba(223, 238, 227, 0.88) 0%, rgba(246, 238, 217, 0.94) 48%, rgba(229, 211, 184, 0.95) 100%),
+    url("assets/tea-hills.svg") center bottom / cover no-repeat;
+  overflow-x: hidden;
+}
+
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button {
+  font: inherit;
+}
+
+.app-shell {
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: calc(14px + env(safe-area-inset-top)) 16px calc(20px + env(safe-area-inset-bottom));
+}
+
+.topbar {
+  width: min(100%, 520px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.club-mark {
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 12px;
+  color: var(--paper);
+  background: rgba(53, 101, 75, 0.92);
+  border: 1px solid rgba(255, 250, 240, 0.42);
+  border-radius: 999px;
+  box-shadow: 0 8px 24px rgba(39, 49, 38, 0.12);
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.sound-toggle {
+  width: 42px;
+  height: 42px;
+  border: 0;
+  border-radius: 50%;
+  color: var(--tea);
+  background: rgba(255, 250, 240, 0.94);
+  box-shadow: 0 8px 22px rgba(65, 45, 24, 0.16);
+  display: grid;
+  place-items: center;
+}
+
+.sound-toggle.is-muted {
+  color: var(--muted);
+  background: rgba(229, 221, 205, 0.94);
+}
+
+.sound-icon {
+  font-size: 1.28rem;
+  line-height: 1;
+  transform: translateY(-1px);
+}
+
+.game-root {
+  width: min(100%, 520px);
+  flex: 1;
+  display: flex;
+}
+
+.screen {
+  width: 100%;
+  min-height: calc(100svh - 96px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 16px;
+  animation: screen-in 360ms ease both;
+}
+
+.screen-header {
+  display: grid;
+  gap: 8px;
+}
+
+.eyebrow {
+  color: var(--tea);
+  font-size: 0.86rem;
+  font-weight: 800;
+}
+
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
+
+h1 {
+  color: #203b2d;
+  font-size: 2.55rem;
+  line-height: 1.08;
+  font-weight: 900;
+}
+
+h2 {
+  color: #234333;
+  font-size: 1.72rem;
+  line-height: 1.18;
+  font-weight: 900;
+}
+
+h3 {
+  color: #2f4d39;
+  font-size: 1.28rem;
+  line-height: 1.25;
+  font-weight: 900;
+}
+
+.lead {
+  color: #43513f;
+  font-size: 1.03rem;
+  line-height: 1.75;
+}
+
+.home-visual {
+  position: relative;
+  min-height: 260px;
+  overflow: hidden;
+  border-radius: var(--radius);
+  background:
+    linear-gradient(180deg, rgba(244, 249, 238, 0.22), rgba(240, 226, 202, 0.4)),
+    url("assets/tea-hills.svg") center bottom / cover no-repeat;
+  border: 1px solid rgba(112, 83, 51, 0.18);
+  box-shadow: var(--shadow);
+}
+
+.home-visual::before,
+.home-visual::after {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255, 250, 240, 0.72);
+}
+
+.home-visual::before {
+  width: 86px;
+  height: 86px;
+  right: 26px;
+  top: 24px;
+}
+
+.home-visual::after {
+  width: 40px;
+  height: 40px;
+  right: 98px;
+  top: 78px;
+  opacity: 0.76;
+}
+
+.tea-cup {
+  position: absolute;
+  left: 28px;
+  bottom: 26px;
+  width: 128px;
+  height: 92px;
+  border-radius: 8px 8px 42px 42px;
+  background: linear-gradient(135deg, #fff7e6, #e2c9a9);
+  border: 4px solid rgba(111, 76, 42, 0.42);
+  box-shadow: 0 16px 24px rgba(64, 48, 27, 0.2);
+}
+
+.tea-cup::before {
+  content: "";
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  top: 14px;
+  height: 18px;
+  border-radius: 50%;
+  background: linear-gradient(90deg, #b96b38, #dfad5f);
+}
+
+.tea-cup::after {
+  content: "";
+  position: absolute;
+  right: -34px;
+  top: 22px;
+  width: 44px;
+  height: 38px;
+  border: 8px solid rgba(111, 76, 42, 0.42);
+  border-left: 0;
+  border-radius: 0 32px 32px 0;
+}
+
+.steam {
+  position: absolute;
+  width: 8px;
+  height: 68px;
+  left: 56px;
+  bottom: 112px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(255, 250, 240, 0), rgba(255, 250, 240, 0.82), rgba(255, 250, 240, 0));
+  animation: steam-rise 2.8s ease-in-out infinite;
+}
+
+.steam:nth-child(2) {
+  left: 86px;
+  height: 82px;
+  animation-delay: 520ms;
+}
+
+.steam:nth-child(3) {
+  left: 116px;
+  height: 62px;
+  animation-delay: 980ms;
+}
+
+.action-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.primary-button,
+.secondary-button,
+.link-button {
+  min-height: 52px;
+  border: 0;
+  border-radius: var(--radius);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 13px 18px;
+  font-weight: 900;
+  text-decoration: none;
+  cursor: pointer;
+  transition: transform 160ms ease, box-shadow 160ms ease, background 160ms ease;
+}
+
+.primary-button {
+  width: 100%;
+  color: var(--paper);
+  background: linear-gradient(135deg, var(--moss), #547b43);
+  box-shadow: 0 12px 26px rgba(53, 101, 75, 0.28);
+}
+
+.secondary-button {
+  color: #31513d;
+  background: rgba(255, 250, 240, 0.86);
+  box-shadow: 0 8px 18px rgba(65, 45, 24, 0.12);
+}
+
+.link-button {
+  color: #4c3423;
+  background: linear-gradient(135deg, #e6bd65, #d79a50);
+  box-shadow: 0 12px 26px rgba(122, 84, 56, 0.22);
+}
+
+.primary-button:active,
+.secondary-button:active,
+.link-button:active,
+.option-button:active,
+.sound-toggle:active {
+  transform: translateY(1px) scale(0.99);
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.stat-chip {
+  min-height: 58px;
+  display: grid;
+  align-content: center;
+  gap: 2px;
+  padding: 9px 8px;
+  border: 1px solid rgba(82, 101, 70, 0.18);
+  border-radius: var(--radius);
+  background: rgba(255, 250, 240, 0.88);
+  box-shadow: 0 8px 18px rgba(65, 45, 24, 0.08);
+  text-align: center;
+}
+
+.stat-label {
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
+.stat-value {
+  color: #284433;
+  font-size: 1.12rem;
+  font-weight: 950;
+}
+
+.tea-field {
+  position: relative;
+  min-height: 430px;
+  overflow: hidden;
+  border-radius: var(--radius);
+  border: 1px solid rgba(48, 85, 55, 0.2);
+  background:
+    linear-gradient(180deg, rgba(224, 242, 230, 0.88), rgba(249, 240, 218, 0.16) 36%, rgba(72, 119, 72, 0.2) 100%),
+    url("assets/tea-hills.svg") center bottom / cover no-repeat;
+  box-shadow: var(--shadow);
+  touch-action: manipulation;
+}
+
+.tea-field::after {
+  content: "";
+  position: absolute;
+  inset: auto -8% -20px;
+  height: 145px;
+  background:
+    repeating-linear-gradient(165deg, rgba(64, 114, 59, 0.48) 0 12px, rgba(38, 87, 54, 0.48) 12px 24px),
+    linear-gradient(180deg, rgba(92, 132, 68, 0), rgba(45, 91, 54, 0.72));
+  transform: rotate(-2deg);
+  pointer-events: none;
+}
+
+.field-message {
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  top: 14px;
+  z-index: 3;
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  color: #2d4433;
+  background: rgba(255, 250, 240, 0.88);
+  border: 1px solid rgba(112, 83, 51, 0.16);
+  font-size: 0.9rem;
+  font-weight: 800;
+  line-height: 1.45;
+}
+
+.leaf-item {
+  --start-x: 0px;
+  --drift-x: 0px;
+  --spin: 0deg;
+  position: absolute;
+  left: var(--left);
+  top: -96px;
+  z-index: 2;
+  width: 88px;
+  height: 102px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  cursor: pointer;
+  animation: leaf-drop var(--drop-duration, 2300ms) linear forwards;
+  filter: drop-shadow(0 10px 10px rgba(37, 52, 30, 0.22));
+}
+
+.leaf-item img {
+  width: 74px;
+  height: 74px;
+  object-fit: contain;
+  pointer-events: none;
+  transform: rotate(var(--spin));
+}
+
+.leaf-item .leaf-name {
+  position: absolute;
+  min-width: 78px;
+  left: 50%;
+  bottom: 3px;
+  transform: translateX(-50%);
+  padding: 3px 6px;
+  border-radius: 999px;
+  color: #fdf8ec;
+  background: rgba(39, 49, 38, 0.76);
+  font-size: 0.68rem;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.leaf-item.is-hit {
+  pointer-events: none;
+  animation-play-state: paused;
+}
+
+.score-pop {
+  position: absolute;
+  z-index: 4;
+  left: var(--x);
+  top: var(--y);
+  min-width: 54px;
+  padding: 5px 8px;
+  border-radius: 999px;
+  color: var(--paper);
+  background: var(--moss);
+  box-shadow: 0 8px 18px rgba(40, 57, 35, 0.18);
+  font-size: 0.9rem;
+  font-weight: 950;
+  text-align: center;
+  pointer-events: none;
+  animation: score-pop 680ms ease-out forwards;
+}
+
+.score-pop.is-negative {
+  background: var(--danger);
+}
+
+.legend-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.legend-item {
+  min-height: 72px;
+  display: grid;
+  place-items: center;
+  gap: 3px;
+  padding: 8px 6px;
+  border-radius: var(--radius);
+  color: #354133;
+  background: rgba(255, 250, 240, 0.84);
+  border: 1px solid rgba(112, 83, 51, 0.14);
+  font-size: 0.74rem;
+  font-weight: 800;
+  text-align: center;
+}
+
+.legend-item img {
+  width: 34px;
+  height: 34px;
+  object-fit: contain;
+}
+
+.result-card,
+.knowledge-card,
+.question-card,
+.final-card {
+  border-radius: var(--radius);
+  background: rgba(255, 250, 240, 0.92);
+  border: 1px solid rgba(112, 83, 51, 0.16);
+  box-shadow: var(--shadow);
+}
+
+.result-card,
+.final-card {
+  display: grid;
+  gap: 14px;
+  padding: 24px;
+  text-align: center;
+}
+
+.result-number {
+  color: var(--moss);
+  font-size: 3rem;
+  line-height: 1;
+  font-weight: 950;
+}
+
+.knowledge-card {
+  min-height: 360px;
+  display: grid;
+  align-content: center;
+  gap: 18px;
+  padding: 28px 24px;
+  overflow: hidden;
+  position: relative;
+}
+
+.knowledge-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 8px;
+  background: var(--card-accent, var(--moss));
+}
+
+.knowledge-title {
+  color: #263c2d;
+  font-size: 2rem;
+  line-height: 1.12;
+}
+
+.knowledge-body {
+  color: #43513f;
+  font-size: 1.08rem;
+  line-height: 1.85;
+}
+
+.card-progress {
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(92, 113, 83, 0.16);
+}
+
+.card-progress span {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, var(--moss), var(--gold));
+  transform-origin: left center;
+  animation: progress-grow var(--card-seconds, 5.5s) linear forwards;
+}
+
+.dot-row {
+  display: flex;
+  justify-content: center;
+  gap: 7px;
+}
+
+.dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: rgba(77, 94, 68, 0.24);
+}
+
+.dot.is-active {
+  background: var(--moss);
+}
+
+.question-card {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+}
+
+.question-count {
+  color: var(--tea);
+  font-size: 0.9rem;
+  font-weight: 900;
+}
+
+.option-list {
+  display: grid;
+  gap: 10px;
+}
+
+.option-button {
+  width: 100%;
+  min-height: 58px;
+  border: 1px solid rgba(84, 105, 76, 0.2);
+  border-radius: var(--radius);
+  padding: 14px 14px;
+  color: #314034;
+  background: rgba(255, 255, 250, 0.94);
+  box-shadow: 0 8px 16px rgba(65, 45, 24, 0.08);
+  text-align: left;
+  font-weight: 850;
+  cursor: pointer;
+  transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
+}
+
+.option-button.is-correct {
+  color: #173d27;
+  border-color: rgba(63, 119, 73, 0.54);
+  background: #dff0d7;
+}
+
+.option-button.is-wrong {
+  color: #5d2b26;
+  border-color: rgba(168, 68, 53, 0.48);
+  background: #f5d6ce;
+}
+
+.final-title {
+  font-size: 2rem;
+  line-height: 1.1;
+}
+
+.final-score {
+  color: var(--moss);
+  font-size: 3.45rem;
+  line-height: 1;
+  font-weight: 950;
+}
+
+.breakdown {
+  display: grid;
+  gap: 8px;
+}
+
+.breakdown-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 11px 12px;
+  border-radius: var(--radius);
+  background: rgba(246, 238, 217, 0.78);
+  color: #3a4538;
+  font-weight: 850;
+}
+
+.join-block {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border-radius: var(--radius);
+  color: #3a3328;
+  background: linear-gradient(135deg, rgba(214, 186, 128, 0.45), rgba(255, 250, 240, 0.88));
+  border: 1px solid rgba(122, 84, 56, 0.18);
+}
+
+@keyframes screen-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes steam-rise {
+  0%,
+  100% {
+    opacity: 0.1;
+    transform: translateY(14px) scaleX(0.8);
+  }
+
+  50% {
+    opacity: 0.85;
+    transform: translateY(-10px) scaleX(1.12);
+  }
+}
+
+@keyframes leaf-drop {
+  0% {
+    transform: translate3d(var(--start-x), -20px, 0) rotate(0deg);
+    opacity: 0;
+  }
+
+  12% {
+    opacity: 1;
+  }
+
+  100% {
+    transform: translate3d(var(--drift-x), calc(100% + 520px), 0) rotate(18deg);
+    opacity: 0.96;
+  }
+}
+
+@keyframes score-pop {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 6px) scale(0.86);
+  }
+
+  24% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -36px) scale(1.06);
+  }
+}
+
+@keyframes progress-grow {
+  from {
+    transform: scaleX(0);
+  }
+
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@media (max-width: 380px) {
+  .app-shell {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  h1 {
+    font-size: 2.2rem;
+  }
+
+  h2 {
+    font-size: 1.48rem;
+  }
+
+  .tea-field {
+    min-height: 390px;
+  }
+
+  .leaf-item {
+    width: 78px;
+    height: 94px;
+  }
+
+  .leaf-item img {
+    width: 66px;
+    height: 66px;
+  }
+
+  .knowledge-title {
+    font-size: 1.72rem;
+  }
+}
+
+@media (min-width: 720px) {
+  .screen {
+    min-height: 760px;
+  }
+}
