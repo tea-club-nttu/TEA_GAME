@@ -1,0 +1,11 @@
+[functions.get-active-activity]
+verify_jwt = false
+
+[functions.create-game-session]
+verify_jwt = false
+
+[functions.submit-game-result]
+verify_jwt = false
+
+[functions.admin-api]
+verify_jwt = true

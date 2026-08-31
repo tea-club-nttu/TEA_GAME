@@ -1,0 +1,75 @@
+import { activityStatus, corsHeaders, json, now, publicActivity, requireAdmin } from "../_shared/core.ts";
+import type { SupabaseClient } from "npm:@supabase/supabase-js@2";
+
+const activityResponse = (activity: Record<string, unknown>) => ({ ...publicActivity(activity), status: activityStatus(activity as { start_at: string; end_at: string }) });
+const safeText = (value: unknown, limit: number) => typeof value === "string" && value.trim().length > 0 && value.trim().length <= limit;
+
+async function dashboard(supabase: SupabaseClient, activityId: string | null) {
+  const { data: activities, error } = await supabase.from("activities").select("id,name,start_at,end_at,is_active").order("start_at", { ascending: false });
+  if (error) throw error;
+  const selected = activities?.find((activity) => activity.id === activityId) || activities?.[0] || null;
+  if (!selected) return { activities: [], selectedActivity: null, stats: {}, leaderboard: [], publicLeaderboard: [] };
+  const { data: leaderboard, error: boardError } = await supabase.rpc("activity_leaderboard", { p_activity_id: selected.id });
+  if (boardError) throw boardError;
+  const { count: sessions, error: sessionError } = await supabase.from("game_sessions").select("id", { count: "exact", head: true }).eq("activity_id", selected.id).eq("is_valid", true).eq("is_deleted", false).not("completed_at", "is", null);
+  if (sessionError) throw sessionError;
+  const mapped = (leaderboard || []).map((row: Record<string, unknown>) => ({ rank: row.rank, studentId: row.student_id, name: row.player_name, highScore: row.high_score, achievedAt: row.achieved_at, playCount: row.play_count }));
+  return {
+    activities: (activities || []).map(activityResponse),
+    selectedActivity: activityResponse(selected),
+    stats: { players: mapped.length, sessions: sessions || 0 },
+    leaderboard: mapped,
+    publicLeaderboard: mapped.slice(0, 20).map(({ rank, name, highScore }) => ({ rank, name, highScore }))
+  };
+}
+
+Deno.serve(async (request) => {
+  if (request.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  if (request.method !== "POST") return json({ error: "Method not allowed" }, 405);
+  try {
+    const body = await request.json();
+    const { supabase, user } = await requireAdmin(request);
+    if (body.action === "dashboard") return json(await dashboard(supabase, body.activityId || null));
+
+    if (body.action === "search") {
+      const query = String(body.query || "").trim();
+      if (!query || query.length > 40 || !body.activityId) return json({ error: "請輸入有效的查詢資料。" }, 400);
+      const escaped = query.replaceAll("%", "\\%").replaceAll("_", "\\_");
+      const { data: sessions, error } = await supabase.from("game_sessions").select("id,student_id,player_name,total_score,completed_at,is_valid,is_deleted").eq("activity_id", body.activityId).or(`student_id.ilike.%${escaped}%,player_name.ilike.%${escaped}%`).order("completed_at", { ascending: false }).limit(200);
+      if (error) throw error;
+      const grouped = new Map<string, Record<string, unknown>>();
+      for (const session of sessions || []) {
+        const key = `${session.student_id}:${session.player_name}`;
+        if (!grouped.has(key)) grouped.set(key, { studentId: session.student_id, name: session.player_name, sessions: [] });
+        (grouped.get(key)!.sessions as unknown[]).push({ id: session.id, totalScore: session.total_score, completedAt: session.completed_at, isValid: session.is_valid && !session.is_deleted });
+      }
+      const players = [...grouped.values()].map((player) => {
+        const valid = (player.sessions as Array<{ totalScore: number | null; isValid: boolean }>).filter((session) => session.isValid && session.totalScore !== null);
+        return { ...player, playCount: valid.length, highScore: valid.length ? Math.max(...valid.map((session) => session.totalScore!)) : 0 };
+      });
+      return json({ players });
+    }
+
+    if (body.action === "delete-session") {
+      if (typeof body.sessionId !== "string") return json({ error: "缺少成績識別資料。" }, 400);
+      const { error } = await supabase.from("game_sessions").update({ is_deleted: true, deleted_at: now().toISOString(), deleted_by: user.id }).eq("id", body.sessionId).eq("is_deleted", false);
+      if (error) throw error;
+      return json({ ok: true });
+    }
+
+    if (body.action === "upsert-activity") {
+      const activity = body.activity || {};
+      if (!safeText(activity.name, 100) || Number.isNaN(Date.parse(activity.startAt)) || Number.isNaN(Date.parse(activity.endAt)) || new Date(activity.endAt) <= new Date(activity.startAt)) return json({ error: "請填寫有效的活動名稱與時間。" }, 400);
+      const values = { name: activity.name.trim(), start_at: new Date(activity.startAt).toISOString(), end_at: new Date(activity.endAt).toISOString(), is_active: Boolean(activity.isActive) };
+      const query = activity.id ? supabase.from("activities").update(values).eq("id", activity.id) : supabase.from("activities").insert(values);
+      const { data, error } = await query.select("id").single();
+      if (error) throw error;
+      return json({ ok: true, id: data.id });
+    }
+
+    return json({ error: "未知的管理操作。" }, 400);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "管理操作失敗。";
+    return json({ error: message }, message.includes("權限") || message.includes("登入") ? 403 : 500);
+  }
+});
