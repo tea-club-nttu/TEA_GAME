@@ -48,9 +48,10 @@ create table if not exists public.game_sessions (
 create index if not exists game_sessions_activity_rank_idx on public.game_sessions (activity_id, total_score desc, completed_at asc) where is_valid and not is_deleted;
 create index if not exists game_sessions_activity_student_idx on public.game_sessions (activity_id, student_id, completed_at desc);
 create index if not exists game_sessions_student_name_idx on public.game_sessions (student_id, player_name);
+create index if not exists game_sessions_deleted_by_idx on public.game_sessions (deleted_by) where deleted_by is not null;
 
 create or replace function public.set_updated_at()
-returns trigger language plpgsql as $$
+returns trigger language plpgsql set search_path = public as $$
 begin
   new.updated_at = now();
   return new;
