@@ -120,7 +120,7 @@
         <div class="screen-header"><p class="eyebrow">開始前</p><h2>${escapeHtml(data.rules.title)}</h2><p class="lead">${escapeHtml(data.rules.intro)}</p></div>
         <article class="rules-card"><div class="rule-list">
           <div class="rule-item"><span class="rule-icon">1</span><div><h3>30 秒採茶</h3><p>越到後面，茶芽出現與下落速度越快。稀有茶芽分數高，但停留時間更短。</p></div></div>
-          <div class="rule-item"><span class="rule-icon">2</span><div><h3>選對才得分</h3><p>${valuable.map((type) => `${type.label} +${type.score}`).join("、")}；漏採正確茶芽 ${data.teaPicking.missPenalty} 分，避開太嫩與太老的葉子。</p></div></div>
+          <div class="rule-item"><span class="rule-icon">2</span><div><h3>選對才得分</h3><p>${valuable.map((type) => `${type.label} +${type.score}`).join("、")}；漏採正確茶芽 ${data.teaPicking.missPenalty} 分，避開破損與太老的葉子。</p></div></div>
           <div class="rule-item"><span class="rule-icon">3</span><div><h3>快問快答</h3><p>題目和選項每次都會洗牌。每題限時 ${data.quiz.secondsPerQuestion} 秒，答得快、連續答對都有加成。</p></div></div>
           <div class="rule-item"><span class="rule-icon">4</span><div><h3>最高分入榜</h3><p>可重複挑戰；完整排行榜僅供茶道社管理員於活動後整理公布。</p></div></div>
         </div></article><button class="primary-button" type="button" data-action="register">${escapeHtml(data.rules.startButton)}</button>
