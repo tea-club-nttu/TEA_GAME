@@ -1,7 +1,7 @@
 import { activityStatus, corsHeaders, hash, json, now, service } from "../_shared/core.ts";
 
-const HARVEST = { twoLeaves: 20, rareSprig: 45, mountainTip: 90, youngBud: -8, oldLeaf: -8, missed: -3 };
-const LIMITS = { twoLeaves: 60, rareSprig: 30, mountainTip: 12, youngBud: 60, oldLeaf: 60, total: 65, misses: 65 };
+const HARVEST = { twoLeaves: 3, singleBud: 1, oldLeaf: -2, diseasedLeaf: -3, missed: -3 };
+const LIMITS = { twoLeaves: 60, singleBud: 60, oldLeaf: 60, diseasedLeaf: 60, total: 65, misses: 65 };
 const QUESTIONS = {
   "lunye-oolong": { correct: "luye", base: 80 },
   "picking-part": { correct: "one-two", base: 60 },
@@ -51,6 +51,7 @@ Deno.serve(async (request) => {
     if (duration < 28 || duration > 240) return json({ error: "本次挑戰時間異常，請重新挑戰。" }, 400);
 
     const hits = body.harvest?.hits || {};
+    if ("rareSprig" in hits || "mountainTip" in hits || "youngBud" in hits) return json({ error: "採茶規則已更新，請重新整理頁面後再挑戰。" }, 400);
     const values = Object.fromEntries(Object.keys(HARVEST).filter((key) => key !== "missed").map((key) => [key, count(hits[key])]));
     const misses = count(body.harvest?.missedCorrect);
     const totalHits = Object.values(values).reduce<number>((sum, value) => sum + (value ?? 0), 0);
