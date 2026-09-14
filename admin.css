@@ -187,12 +187,18 @@
 
 .activity-form {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
   gap: 12px;
 }
 
 .activity-form .full-width {
-  grid-column: 1 / -1;
+  grid-column: auto;
+}
+
+.activity-form .input-group,
+.activity-form .admin-date {
+  min-width: 0;
+  max-width: 100%;
 }
 
 .toggle-label {
@@ -208,6 +214,4 @@
   .admin-shell { padding: 16px 12px 30px; }
   .admin-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .admin-header h1 { font-size: 1.45rem; }
-  .activity-form { grid-template-columns: 1fr; }
-  .activity-form .full-width { grid-column: auto; }
 }
