@@ -1,6 +1,6 @@
 import { activityStatus, corsHeaders, hash, json, now, service } from "../_shared/core.ts";
 
-const HARVEST = { twoLeaves: 3, singleBud: 1, oldLeaf: -2, diseasedLeaf: -3, missed: -3 };
+const HARVEST = { twoLeaves: 40, singleBud: 20, oldLeaf: -30, diseasedLeaf: -40, missed: -5 };
 const LIMITS = { twoLeaves: 60, singleBud: 60, oldLeaf: 60, diseasedLeaf: 60, total: 65, misses: 65 };
 const QUESTIONS = {
   "lunye-oolong": { correct: "luye", base: 80 },
@@ -37,6 +37,7 @@ Deno.serve(async (request) => {
   if (request.method !== "POST") return json({ error: "Method not allowed" }, 405);
   try {
     const body = await request.json();
+    if (body.scoringVersion !== "harvest-balanced-v1") return json({ error: "採茶計分已更新，請重新整理頁面後再挑戰。" }, 400);
     const token = request.headers.get("x-game-session-token") || "";
     if (!token || typeof body.sessionId !== "string") return json({ error: "缺少挑戰識別資料。" }, 400);
     const supabase = service();
@@ -61,8 +62,8 @@ Deno.serve(async (request) => {
     const harvestScore = Object.entries(values).reduce((sum, [key, value]) => sum + HARVEST[key as keyof typeof HARVEST] * (value || 0), HARVEST.missed * (misses || 0));
     const rawTotalScore = harvestScore + quiz.score;
     // 永遠存進資料表允許的範圍；超出上限的事件組合標記為異常，絕不列入排行。
-    const scoreOutOfRange = rawTotalScore < -500 || rawTotalScore > 2200;
-    const totalScore = Math.min(2200, Math.max(-500, rawTotalScore));
+    const scoreOutOfRange = rawTotalScore < -3000 || rawTotalScore > 3200;
+    const totalScore = Math.min(3200, Math.max(-3000, rawTotalScore));
     const isValid = !invalidHarvest && !scoreOutOfRange;
     const anomalyReason = invalidHarvest ? "遊戲事件數量超出合理範圍" : scoreOutOfRange ? "分數超出合理範圍" : null;
     const update = { completed_at: completedAt.toISOString(), game_duration_seconds: duration, harvest_summary: { hits: values, missedCorrect: misses }, quiz_answers: answers, harvest_score: harvestScore, quiz_score: quiz.score, total_score: totalScore, correct_answers: quiz.correctAnswers, is_valid: isValid, anomaly_reason: anomalyReason };

@@ -337,7 +337,7 @@
 
   async function submitResult() {
     clearTimers(); sound.play("finish"); renderSubmitting();
-    const payload = { sessionId: state.gameSession.id, harvest: { hits: state.harvestHits, missedCorrect: state.missedCorrect }, quizAnswers: state.quizAnswers };
+    const payload = { sessionId: state.gameSession.id, scoringVersion: data.teaPicking.scoringVersion, harvest: { hits: state.harvestHits, missedCorrect: state.missedCorrect }, quizAnswers: state.quizAnswers };
     try {
       const result = demoMode ? { accepted: true, score: { harvest: state.harvestScore, quiz: state.quizScore, total: state.harvestScore + state.quizScore, correctAnswers: state.quizCorrect } } : await api.submitResult(payload, state.gameSession.token);
       if (!result.accepted) { renderRejected(result.message || "這筆成績未通過系統驗證。"); return; }

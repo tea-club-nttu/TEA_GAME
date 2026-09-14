@@ -23,18 +23,19 @@ window.TEA_GAME_DATA = {
 
   // 採茶 30 秒。後段的出現間隔與停留時間都會縮短。
   teaPicking: {
+    scoringVersion: "harvest-balanced-v1",
     durationSeconds: 30,
     spawnIntervalMs: 700,
     endSpawnIntervalMs: 350,
     itemLifeMs: 2400,
     endItemLifeMs: 1250,
-    missPenalty: -3,
+    missPenalty: -5,
     maxActiveItems: 7,
     types: [
-      { id: "twoLeaves", label: "一心二葉", score: 3, isCorrect: true, weight: 30, lifeMultiplier: 1, asset: "assets/tea-leaf-correct.svg" },
-      { id: "singleBud", label: "單芽", score: 1, isCorrect: true, weight: 20, lifeMultiplier: 0.7, asset: "assets/tea-single-bud.svg" },
-      { id: "oldLeaf", label: "老葉", score: -2, isCorrect: false, weight: 25, lifeMultiplier: 1.1, asset: "assets/tea-old-leaf.svg" },
-      { id: "diseasedLeaf", label: "病葉", score: -3, isCorrect: false, weight: 25, lifeMultiplier: 1.08, asset: "assets/tea-diseased-leaf.svg" }
+      { id: "twoLeaves", label: "一心二葉", score: 40, isCorrect: true, weight: 30, lifeMultiplier: 1, asset: "assets/tea-leaf-correct.svg" },
+      { id: "singleBud", label: "單芽", score: 20, isCorrect: true, weight: 20, lifeMultiplier: 0.7, asset: "assets/tea-single-bud.svg" },
+      { id: "oldLeaf", label: "老葉", score: -30, isCorrect: false, weight: 25, lifeMultiplier: 1.1, asset: "assets/tea-old-leaf.svg" },
+      { id: "diseasedLeaf", label: "病葉", score: -40, isCorrect: false, weight: 25, lifeMultiplier: 1.08, asset: "assets/tea-diseased-leaf.svg" }
     ]
   },
 
@@ -79,7 +80,7 @@ window.TEA_GAME_DATA = {
 
   quizDifficulty: { easy: 60, medium: 80, hard: 100 },
   titles: [
-    { minScore: -999, title: "茶葉新手" },
+    { minScore: -3000, title: "茶葉新手" },
     { minScore: 500, title: "採茶學徒" },
     { minScore: 900, title: "花東茶達人" },
     { minScore: 1400, title: "茶王" }
