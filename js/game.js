@@ -197,9 +197,10 @@
   }
 
   const getHarvestProgress = () => Math.min(1, Math.max(0, (Date.now() - state.harvestStartedAt) / (data.teaPicking.durationSeconds * 1000)));
+  const getHarvestSpeedProgress = () => Math.pow(getHarvestProgress(), data.teaPicking.speedRampPower || 1);
   const interpolate = (start, end, progress) => Math.round(start + (end - start) * progress);
-  const getCurrentSpawnInterval = () => interpolate(data.teaPicking.spawnIntervalMs, data.teaPicking.endSpawnIntervalMs, getHarvestProgress());
-  const getCurrentItemLifeMs = (type) => Math.round(interpolate(data.teaPicking.itemLifeMs, data.teaPicking.endItemLifeMs, getHarvestProgress()) * (type.lifeMultiplier || 1));
+  const getCurrentSpawnInterval = () => interpolate(data.teaPicking.spawnIntervalMs, data.teaPicking.endSpawnIntervalMs, getHarvestSpeedProgress());
+  const getCurrentItemLifeMs = (type) => Math.round(interpolate(data.teaPicking.itemLifeMs, data.teaPicking.endItemLifeMs, getHarvestSpeedProgress()) * (type.lifeMultiplier || 1));
   const scheduleNextSpawn = () => { if (state.harvestRunning) addTimer(setTimeout(() => { spawnTeaItem(); scheduleNextSpawn(); }, getCurrentSpawnInterval())); };
 
   function pickWeightedTeaType() {

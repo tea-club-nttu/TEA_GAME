@@ -26,9 +26,10 @@ window.TEA_GAME_DATA = {
     scoringVersion: "harvest-balanced-v1",
     durationSeconds: 30,
     spawnIntervalMs: 700,
-    endSpawnIntervalMs: 350,
+    endSpawnIntervalMs: 280,
     itemLifeMs: 2400,
-    endItemLifeMs: 1250,
+    endItemLifeMs: 900,
+    speedRampPower: 1.6,
     missPenalty: -5,
     maxActiveItems: 7,
     types: [
