@@ -17,7 +17,7 @@ window.TEA_GAME_DATA = {
   },
   cta: {
     label: "加入茶道社",
-    joinUrl: "#",
+    joinUrl: "https://sites.google.com/view/nttu-rform/",
     message: "歡迎加入臺東大學茶道社，一起體驗泡茶、茶文化與茶點製作！"
   },
 
@@ -32,7 +32,7 @@ window.TEA_GAME_DATA = {
     maxActiveItems: 7,
     types: [
       { id: "twoLeaves", label: "一心二葉", score: 3, isCorrect: true, weight: 50, lifeMultiplier: 1, asset: "assets/tea-leaf-correct.svg" },
-      { id: "singleBud", label: "單芽", score: 1, isCorrect: true, weight: 20, lifeMultiplier: 1, asset: "assets/tea-single-bud.svg" },
+      { id: "singleBud", label: "單芽", score: 1, isCorrect: true, weight: 20, lifeMultiplier: 0.7, asset: "assets/tea-single-bud.svg" },
       { id: "oldLeaf", label: "老葉", score: -2, isCorrect: false, weight: 15, lifeMultiplier: 1.1, asset: "assets/tea-old-leaf.svg" },
       { id: "diseasedLeaf", label: "病葉", score: -3, isCorrect: false, weight: 15, lifeMultiplier: 1.08, asset: "assets/tea-diseased-leaf.svg" }
     ]
