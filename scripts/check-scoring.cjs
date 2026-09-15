@@ -58,13 +58,13 @@ const hits = (counts) => Object.fromEntries(data.teaPicking.types.map((t, i) => 
     assert.equal(result.body.score.total, expected);
     console.log(name, result.body.score);
   }
-  const high = await run(hits([60, 5, 0, 0]), 0, 5, 0);
+  const high = await run(hits([130, 0, 0, 0]), 0, 5, 0);
   assert.equal(high.body.accepted, true);
-  assert.ok(high.body.score.total > 2200 && high.body.score.total <= 3200);
-  const low = await run(hits([0, 0, 5, 60]), 0, 0, 6000);
+  assert.ok(high.body.score.total > 3200 && high.body.score.total <= 6000);
+  const low = await run(hits([0, 0, 0, 130]), 0, 0, 6000);
   assert.equal(low.body.accepted, true);
-  assert.equal(low.body.score.total, -2550);
-  assert.equal((await run(hits([60, 6, 0, 0]), 0, 0, 6000)).body.accepted, false);
+  assert.equal(low.body.score.total, -5200);
+  assert.equal((await run(hits([130, 1, 0, 0]), 0, 0, 6000)).body.accepted, false);
   assert.equal((await run(hits([1, 0, 0, 0]), 0, 0, 6000, "old-version")).status, 400);
   assert.equal(saved, null);
   console.log("PASS: frontend/backend scoring, example rounds, score bounds, event limits and stale version rejection");

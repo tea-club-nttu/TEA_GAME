@@ -8,6 +8,12 @@ let client;
 let dashboard = null;
 let selectedActivityId = "";
 let activeTab = "ranking";
+const SPEED_TYPES = [
+  { id: "twoLeaves", label: "一心二葉" },
+  { id: "singleBud", label: "單芽" },
+  { id: "oldLeaf", label: "老葉" },
+  { id: "diseasedLeaf", label: "病葉" }
+];
 
 const escapeHtml = (value) => String(value ?? "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;");
 const formatDate = (value) => value ? taipei.format(new Date(value)) : "-";
@@ -68,7 +74,7 @@ function renderDashboard() {
     <header class="admin-header"><div><p class="eyebrow">茶道社挑戰賽</p><h1>管理後台</h1></div><button class="admin-button is-quiet" data-admin-action="logout">登出</button></header>
     <div class="admin-toolbar"><select class="admin-select" id="activity-select">${dashboard.activities.map((item) => `<option value="${escapeHtml(item.id)}" ${item.id === selectedActivityId ? "selected" : ""}>${escapeHtml(item.name)}${item.isActive ? "（開放）" : "（關閉）"}</option>`).join("")}</select><button class="admin-button is-quiet" data-admin-action="edit-activity">修改活動</button><button class="admin-button is-quiet" data-admin-action="new-activity">新增活動</button></div>
     ${activity ? `<div class="admin-stats"><div class="admin-stat"><span>活動狀態</span><strong>${activity.status === "active" ? "進行中" : activity.status === "upcoming" ? "未開始" : "已結束"}</strong></div><div class="admin-stat"><span>參賽人數</span><strong>${stats.players || 0}</strong></div><div class="admin-stat"><span>遊玩總次數</span><strong>${stats.sessions || 0}</strong></div><div class="admin-stat"><span>活動截止</span><strong>${escapeHtml(formatDate(activity.endAt))}</strong></div></div>` : `<p class="admin-message">尚未建立活動。</p>`}
-    <nav class="admin-tabs"><button class="admin-tab ${activeTab === "ranking" ? "is-active" : ""}" data-admin-action="tab" data-tab="ranking">排行榜</button><button class="admin-tab ${activeTab === "players" ? "is-active" : ""}" data-admin-action="tab" data-tab="players">搜尋玩家</button><button class="admin-tab ${activeTab === "public" ? "is-active" : ""}" data-admin-action="tab" data-tab="public">公開排行</button></nav>
+    <nav class="admin-tabs"><button class="admin-tab ${activeTab === "ranking" ? "is-active" : ""}" data-admin-action="tab" data-tab="ranking">排行榜</button><button class="admin-tab ${activeTab === "players" ? "is-active" : ""}" data-admin-action="tab" data-tab="players">搜尋玩家</button><button class="admin-tab ${activeTab === "public" ? "is-active" : ""}" data-admin-action="tab" data-tab="public">公開排行</button><button class="admin-tab ${activeTab === "speed" ? "is-active" : ""}" data-admin-action="tab" data-tab="speed">遊戲速度</button></nav>
     <div id="admin-content"></div></section>`;
   document.getElementById("activity-select").addEventListener("change", (event) => { selectedActivityId = event.target.value; loadDashboard(); });
   renderTab();
@@ -76,6 +82,7 @@ function renderDashboard() {
 
 function renderTab() {
   const content = document.getElementById("admin-content");
+  if (activeTab === "speed") { renderSpeedSettings(); return; }
   if (activeTab === "players") {
     content.innerHTML = `<section class="admin-panel"><h2>搜尋玩家</h2><div class="table-toolbar"><input class="admin-input" id="player-query" placeholder="輸入學號或姓名"><button class="admin-button" id="search-player">搜尋</button></div><div id="search-result" class="admin-empty">輸入學號或姓名以查看遊玩紀錄。</div></section>`;
     document.getElementById("search-player").addEventListener("click", searchPlayer);
@@ -86,6 +93,73 @@ function renderTab() {
   const header = activeTab === "public" ? "<tr><th>排名</th><th>姓名</th><th>最高分</th></tr>" : "<tr><th>排名</th><th>學號</th><th>姓名</th><th>最高分</th><th>達成時間</th><th>遊玩次數</th></tr>";
   const body = rows?.length ? rows.map((row) => activeTab === "public" ? `<tr><td>${row.rank}</td><td>${escapeHtml(row.name)}</td><td>${row.highScore}</td></tr>` : `<tr><td>${row.rank}</td><td>${escapeHtml(row.studentId)}</td><td>${escapeHtml(row.name)}</td><td>${row.highScore}</td><td>${escapeHtml(formatDate(row.achievedAt))}</td><td>${row.playCount}</td></tr>`).join("") : `<tr><td colspan="6" class="admin-empty">尚無有效成績。</td></tr>`;
   content.innerHTML = `<section class="admin-panel"><div class="table-toolbar"><h2>${activeTab === "public" ? "IG 公開排行榜" : "最終排行榜"}</h2>${activeTab === "ranking" ? `<button class="admin-button is-quiet" data-admin-action="export">匯出 CSV</button>` : ""}</div><div class="admin-table-wrap"><table class="admin-table"><thead>${header}</thead><tbody>${body}</tbody></table></div></section>`;
+}
+
+function readSpeedForm() {
+  const form = document.getElementById("speed-form");
+  const number = (name) => Number(form.elements.namedItem(name).value);
+  return {
+    spawnStartMs: number("spawnStartMs"),
+    spawnEndMs: number("spawnEndMs"),
+    speedRampPower: number("speedRampPower"),
+    types: Object.fromEntries(SPEED_TYPES.map(({ id }) => [id, {
+      weight: number(`${id}-weight`),
+      startLifeMs: number(`${id}-startLifeMs`),
+      endLifeMs: number(`${id}-endLifeMs`)
+    }]))
+  };
+}
+
+function updateSpeedPreview() {
+  const target = document.getElementById("speed-preview");
+  if (!target) return;
+  const config = readSpeedForm();
+  const interpolate = (start, end, progress) => Math.round(start + (end - start) * progress);
+  const rows = [0, 5, 10, 15, 20, 25, 30].map((seconds) => {
+    const progress = Math.pow(seconds / 30, config.speedRampPower);
+    const spawn = interpolate(config.spawnStartMs, config.spawnEndMs, progress);
+    const cells = SPEED_TYPES.map(({ id }) => {
+      const valid = Number.isFinite(config.types[id].startLifeMs) && Number.isFinite(config.types[id].endLifeMs);
+      return `<td>${valid ? `${interpolate(config.types[id].startLifeMs, config.types[id].endLifeMs, progress)}ms` : "—"}</td>`;
+    }).join("");
+    return `<tr><td>${seconds} 秒</td><td>${Number.isFinite(spawn) ? `${spawn}ms` : "—"}</td>${cells}</tr>`;
+  }).join("");
+  target.innerHTML = `<div class="admin-table-wrap"><table class="admin-table speed-preview-table"><thead><tr><th>時間</th><th>出現間隔</th>${SPEED_TYPES.map(({ label }) => `<th>${label}掉落</th>`).join("")}</tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+
+function renderSpeedSettings(message = "") {
+  const content = document.getElementById("admin-content");
+  const config = dashboard.gameConfig;
+  if (!config?.types) { content.innerHTML = `<p class="admin-message is-error">尚未取得遊戲速度設定。</p>`; return; }
+  const typeRows = SPEED_TYPES.map(({ id, label }) => {
+    const item = config.types[id];
+    return `<tr><th>${label}</th><td><input class="speed-input" type="number" name="${id}-weight" min="1" max="97" step="1" value="${item.weight}" required></td><td><input class="speed-input" type="number" name="${id}-startLifeMs" min="600" max="5000" step="10" value="${item.startLifeMs}" required></td><td><input class="speed-input" type="number" name="${id}-endLifeMs" min="300" max="3000" step="10" value="${item.endLifeMs}" required></td></tr>`;
+  }).join("");
+  content.innerHTML = `<form class="admin-panel" id="speed-form"><div><h2>遊戲速度設定</h2><p class="admin-help">毫秒越小越快。玩家重新進入遊戲後會讀取最新設定。</p></div>
+    <div class="speed-settings-grid"><label class="input-group"><span>開始出現間隔（ms）</span><input type="number" name="spawnStartMs" min="400" max="1500" step="10" value="${config.spawnStartMs}" required></label><label class="input-group"><span>結尾出現間隔（ms）</span><input type="number" name="spawnEndMs" min="200" max="1000" step="10" value="${config.spawnEndMs}" required></label><label class="input-group"><span>加速曲線（0.5～3）</span><input type="number" name="speedRampPower" min="0.5" max="3" step="0.1" value="${config.speedRampPower}" required></label></div>
+    <div class="admin-table-wrap"><table class="admin-table speed-edit-table"><thead><tr><th>葉片</th><th>出現比例 %</th><th>初始掉落 ms</th><th>結尾掉落 ms</th></tr></thead><tbody>${typeRows}</tbody></table></div>
+    <p class="admin-help">四種出現比例須合計 100%。結尾時間不可大於初始時間；加速曲線越高，速度變化越集中在後半段。</p>
+    <h3>30 秒速度預覽</h3><div id="speed-preview"></div>
+    <p class="form-error" id="speed-error" hidden></p>${message ? `<p class="speed-success">${escapeHtml(message)}</p>` : ""}<button class="primary-button" type="submit">儲存速度設定</button></form>`;
+  document.getElementById("speed-form").addEventListener("input", updateSpeedPreview);
+  document.getElementById("speed-form").addEventListener("submit", saveSpeedSettings);
+  updateSpeedPreview();
+}
+
+async function saveSpeedSettings(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const error = document.getElementById("speed-error");
+  const button = form.querySelector("button[type=submit]");
+  error.hidden = true; button.disabled = true; button.textContent = "儲存中…";
+  try {
+    const response = await adminCall("update-game-settings", { gameConfig: readSpeedForm() });
+    dashboard.gameConfig = response.gameConfig;
+    renderSpeedSettings("已儲存，玩家重新進入遊戲後生效。");
+  } catch (requestError) {
+    error.textContent = requestError.message || "速度設定儲存失敗。"; error.hidden = false;
+    button.disabled = false; button.textContent = "儲存速度設定";
+  }
 }
 
 async function searchPlayer() {

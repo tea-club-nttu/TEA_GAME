@@ -85,6 +85,20 @@
     state.activeItems.clear();
   }
 
+  function applyGameConfig(config) {
+    if (!config?.types) return;
+    data.teaPicking.spawnIntervalMs = Number(config.spawnStartMs) || data.teaPicking.spawnIntervalMs;
+    data.teaPicking.endSpawnIntervalMs = Number(config.spawnEndMs) || data.teaPicking.endSpawnIntervalMs;
+    data.teaPicking.speedRampPower = Number(config.speedRampPower) || data.teaPicking.speedRampPower;
+    for (const type of data.teaPicking.types) {
+      const remote = config.types[type.id];
+      if (!remote) continue;
+      type.weight = Number(remote.weight) || type.weight;
+      type.startLifeMs = Number(remote.startLifeMs) || Math.round(data.teaPicking.itemLifeMs * (type.lifeMultiplier || 1));
+      type.endLifeMs = Number(remote.endLifeMs) || Math.round(data.teaPicking.endItemLifeMs * (type.lifeMultiplier || 1));
+    }
+  }
+
   function formatTaipei(value) {
     if (!value) return "";
     return new Intl.DateTimeFormat("zh-TW", { timeZone: "Asia/Taipei", month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit", hour12: false }).format(new Date(value));
@@ -200,7 +214,11 @@
   const getHarvestSpeedProgress = () => Math.pow(getHarvestProgress(), data.teaPicking.speedRampPower || 1);
   const interpolate = (start, end, progress) => Math.round(start + (end - start) * progress);
   const getCurrentSpawnInterval = () => interpolate(data.teaPicking.spawnIntervalMs, data.teaPicking.endSpawnIntervalMs, getHarvestSpeedProgress());
-  const getCurrentItemLifeMs = (type) => Math.round(interpolate(data.teaPicking.itemLifeMs, data.teaPicking.endItemLifeMs, getHarvestSpeedProgress()) * (type.lifeMultiplier || 1));
+  const getCurrentItemLifeMs = (type) => interpolate(
+    type.startLifeMs || Math.round(data.teaPicking.itemLifeMs * (type.lifeMultiplier || 1)),
+    type.endLifeMs || Math.round(data.teaPicking.endItemLifeMs * (type.lifeMultiplier || 1)),
+    getHarvestSpeedProgress()
+  );
   const scheduleNextSpawn = () => { if (state.harvestRunning) addTimer(setTimeout(() => { spawnTeaItem(); scheduleNextSpawn(); }, getCurrentSpawnInterval())); };
 
   function pickWeightedTeaType() {
@@ -369,6 +387,7 @@
     if (!api.isConfigured()) { renderSetupNotice(); return; }
     try {
       const response = await api.getActivity();
+      applyGameConfig(response.gameConfig);
       state.activity = response.activity;
       if (response.status === "active") renderHome();
       else if (response.status === "upcoming") renderUnavailable("活動尚未開始");

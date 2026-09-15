@@ -3,12 +3,51 @@ import type { SupabaseClient } from "npm:@supabase/supabase-js@2";
 
 const activityResponse = (activity: Record<string, unknown>) => ({ ...publicActivity(activity), status: activityStatus(activity as { start_at: string; end_at: string }) });
 const safeText = (value: unknown, limit: number) => typeof value === "string" && value.trim().length > 0 && value.trim().length <= limit;
+const TYPE_IDS = ["twoLeaves", "singleBud", "oldLeaf", "diseasedLeaf"] as const;
+
+function validatedGameConfig(input: unknown) {
+  if (!input || typeof input !== "object") throw new Error("遊戲速度設定格式不正確。");
+  const value = input as Record<string, unknown>;
+  const whole = (key: string, min: number, max: number) => {
+    const number = Number(value[key]);
+    if (!Number.isInteger(number) || number < min || number > max) throw new Error(`${key} 超出允許範圍。`);
+    return number;
+  };
+  const spawnStartMs = whole("spawnStartMs", 400, 1500);
+  const spawnEndMs = whole("spawnEndMs", 200, 1000);
+  const speedRampPower = Number(value.speedRampPower);
+  if (spawnEndMs > spawnStartMs) throw new Error("結尾出現間隔不可大於開始間隔。");
+  if (!Number.isFinite(speedRampPower) || speedRampPower < 0.5 || speedRampPower > 3) throw new Error("加速曲線必須介於 0.5～3。");
+  const inputTypes = value.types;
+  if (!inputTypes || typeof inputTypes !== "object") throw new Error("葉片速度設定格式不正確。");
+  const types: Record<string, { weight: number; startLifeMs: number; endLifeMs: number }> = {};
+  for (const id of TYPE_IDS) {
+    const item = (inputTypes as Record<string, unknown>)[id];
+    if (!item || typeof item !== "object") throw new Error(`缺少 ${id} 設定。`);
+    const source = item as Record<string, unknown>;
+    const read = (key: string, min: number, max: number) => {
+      const number = Number(source[key]);
+      if (!Number.isInteger(number) || number < min || number > max) throw new Error(`${id} 的 ${key} 超出允許範圍。`);
+      return number;
+    };
+    const weight = read("weight", 1, 97);
+    const startLifeMs = read("startLifeMs", 600, 5000);
+    const endLifeMs = read("endLifeMs", 300, 3000);
+    if (endLifeMs > startLifeMs) throw new Error(`${id} 的結尾掉落時間不可大於初始時間。`);
+    types[id] = { weight, startLifeMs, endLifeMs };
+  }
+  if (Object.values(types).reduce((sum, item) => sum + item.weight, 0) !== 100) throw new Error("四種葉片的出現比例必須合計 100%。");
+  return { spawnStartMs, spawnEndMs, speedRampPower: Math.round(speedRampPower * 100) / 100, types };
+}
 
 async function dashboard(supabase: SupabaseClient, activityId: string | null) {
-  const { data: activities, error } = await supabase.from("activities").select("id,name,start_at,end_at,is_active").order("start_at", { ascending: false });
-  if (error) throw error;
+  const [{ data: activities, error }, { data: settings, error: settingsError }] = await Promise.all([
+    supabase.from("activities").select("id,name,start_at,end_at,is_active").order("start_at", { ascending: false }),
+    supabase.from("game_settings").select("config").eq("id", true).maybeSingle()
+  ]);
+  if (error || settingsError) throw error || settingsError;
   const selected = activities?.find((activity) => activity.id === activityId) || activities?.[0] || null;
-  if (!selected) return { activities: [], selectedActivity: null, stats: {}, leaderboard: [], publicLeaderboard: [] };
+  if (!selected) return { activities: [], selectedActivity: null, stats: {}, leaderboard: [], publicLeaderboard: [], gameConfig: settings?.config || null };
   const { data: leaderboard, error: boardError } = await supabase.rpc("activity_leaderboard", { p_activity_id: selected.id });
   if (boardError) throw boardError;
   const { count: sessions, error: sessionError } = await supabase.from("game_sessions").select("id", { count: "exact", head: true }).eq("activity_id", selected.id).eq("is_valid", true).eq("is_deleted", false).not("completed_at", "is", null);
@@ -19,7 +58,8 @@ async function dashboard(supabase: SupabaseClient, activityId: string | null) {
     selectedActivity: activityResponse(selected),
     stats: { players: mapped.length, sessions: sessions || 0 },
     leaderboard: mapped,
-    publicLeaderboard: mapped.slice(0, 20).map(({ rank, name, highScore }) => ({ rank, name, highScore }))
+    publicLeaderboard: mapped.slice(0, 20).map(({ rank, name, highScore }) => ({ rank, name, highScore })),
+    gameConfig: settings?.config || null
   };
 }
 
@@ -30,6 +70,13 @@ Deno.serve(async (request) => {
     const body = await request.json();
     const { supabase, user } = await requireAdmin(request);
     if (body.action === "dashboard") return json(await dashboard(supabase, body.activityId || null));
+
+    if (body.action === "update-game-settings") {
+      const gameConfig = validatedGameConfig(body.gameConfig);
+      const { error } = await supabase.from("game_settings").upsert({ id: true, config: gameConfig });
+      if (error) throw error;
+      return json({ ok: true, gameConfig });
+    }
 
     if (body.action === "search") {
       const query = String(body.query || "").trim();

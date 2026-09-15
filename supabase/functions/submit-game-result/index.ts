@@ -1,7 +1,7 @@
 import { activityStatus, corsHeaders, hash, json, now, service } from "../_shared/core.ts";
 
 const HARVEST = { twoLeaves: 40, singleBud: 20, oldLeaf: -30, diseasedLeaf: -40, missed: -5 };
-const LIMITS = { twoLeaves: 60, singleBud: 60, oldLeaf: 60, diseasedLeaf: 60, total: 65, misses: 65 };
+const LIMITS = { twoLeaves: 130, singleBud: 130, oldLeaf: 130, diseasedLeaf: 130, total: 130, misses: 130 };
 const QUESTIONS = {
   "lunye-oolong": { correct: "luye", base: 80 },
   "picking-part": { correct: "one-two", base: 60 },
@@ -62,8 +62,8 @@ Deno.serve(async (request) => {
     const harvestScore = Object.entries(values).reduce((sum, [key, value]) => sum + HARVEST[key as keyof typeof HARVEST] * (value || 0), HARVEST.missed * (misses || 0));
     const rawTotalScore = harvestScore + quiz.score;
     // 永遠存進資料表允許的範圍；超出上限的事件組合標記為異常，絕不列入排行。
-    const scoreOutOfRange = rawTotalScore < -3000 || rawTotalScore > 3200;
-    const totalScore = Math.min(3200, Math.max(-3000, rawTotalScore));
+    const scoreOutOfRange = rawTotalScore < -6000 || rawTotalScore > 6000;
+    const totalScore = Math.min(6000, Math.max(-6000, rawTotalScore));
     const isValid = !invalidHarvest && !scoreOutOfRange;
     const anomalyReason = invalidHarvest ? "遊戲事件數量超出合理範圍" : scoreOutOfRange ? "分數超出合理範圍" : null;
     const update = { completed_at: completedAt.toISOString(), game_duration_seconds: duration, harvest_summary: { hits: values, missedCorrect: misses }, quiz_answers: answers, harvest_score: harvestScore, quiz_score: quiz.score, total_score: totalScore, correct_answers: quiz.correctAnswers, is_valid: isValid, anomaly_reason: anomalyReason };
