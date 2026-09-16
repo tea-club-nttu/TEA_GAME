@@ -381,7 +381,9 @@
     root.innerHTML = `<section class="screen status-screen"><div class="status-card"><p class="eyebrow">系統驗證</p><h2>這筆成績無法列入活動</h2><p class="lead">${escapeHtml(message)}</p><button class="primary-button" type="button" data-action="restart">重新挑戰</button></div></section>`;
   }
 
+  let pauseRefreshTimer;
   async function loadActivity() {
+    clearTimeout(pauseRefreshTimer);
     renderLoading();
     if (demoMode) { state.activity = { name: "本機展示模式", endAt: new Date(Date.now() + 86400000).toISOString() }; renderHome(); return; }
     if (!api.isConfigured()) { renderSetupNotice(); return; }
@@ -390,6 +392,11 @@
       applyGameConfig(response.gameConfig);
       state.activity = response.activity;
       if (response.status === "active") renderHome();
+      else if (response.status === "paused") {
+        const reopen = response.activity?.resumeAt ? new Intl.DateTimeFormat("zh-TW", { timeZone: "Asia/Taipei", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit", hour12: false }).format(new Date(response.activity.resumeAt)) : null;
+        root.innerHTML = `<section class="screen status-screen"><div class="status-card"><p class="eyebrow">茶道社挑戰賽</p><h2>活動暫停開放</h2><p class="lead">${reopen ? `預計 ${escapeHtml(reopen)}（台灣時間）重新開放。` : "重新開放時間待定，請留意茶道社公告。"}<br>我們正在處理臨時問題，感謝你的耐心等候。</p><p class="quiet-note">此頁每 15 秒自動確認開放狀態。</p><button class="primary-button" type="button" data-action="reload-activity">重新確認</button></div></section>`;
+        pauseRefreshTimer = setTimeout(loadActivity, 15000);
+      }
       else if (response.status === "upcoming") renderUnavailable("活動尚未開始");
       else if (response.status === "ended") renderUnavailable("本次活動已結束");
       else renderUnavailable("目前沒有開放中的挑戰活動");
@@ -405,7 +412,7 @@
     if (action === "knowledge") { state.cardIndex = 0; renderKnowledge(); }
     if (action === "next-card") { state.cardIndex += 1; sound.play("card"); renderKnowledge(); }
     if (action === "quiz") startQuiz();
-    if (action === "restart") { resetRound(); renderRegistration(); }
+    if (action === "restart") { resetRound(); loadActivity(); }
     if (action === "retry-submit") submitResult();
     if (action === "reload-activity") loadActivity();
   });

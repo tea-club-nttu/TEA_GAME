@@ -11,13 +11,15 @@ export const service = () => createClient(Deno.env.get("SUPABASE_URL")!, Deno.en
 export const hash = async (value: string) => Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value)))).map((byte) => byte.toString(16).padStart(2, "0")).join("");
 export const now = () => new Date();
 
-export function activityStatus(activity: { start_at: string; end_at: string }, at = now()) {
+export function activityStatus(activity: { start_at: string; end_at: string; is_active?: boolean; is_paused?: boolean; resume_at?: string | null }, at = now()) {
+  if (activity.is_active === false) return "closed";
   if (at < new Date(activity.start_at)) return "upcoming";
   if (at > new Date(activity.end_at)) return "ended";
+  if (activity.is_paused && (!activity.resume_at || at < new Date(activity.resume_at))) return "paused";
   return "active";
 }
 
-export const publicActivity = (activity: Record<string, unknown>) => ({ id: activity.id, name: activity.name, startAt: activity.start_at, endAt: activity.end_at, isActive: activity.is_active });
+export const publicActivity = (activity: Record<string, unknown>) => ({ id: activity.id, name: activity.name, startAt: activity.start_at, endAt: activity.end_at, isActive: activity.is_active, isPaused: activity.is_paused, resumeAt: activity.resume_at });
 
 export function validPlayer(studentId: unknown, name: unknown) {
   const safe = /^[\p{L}\p{N}\s-]+$/u;

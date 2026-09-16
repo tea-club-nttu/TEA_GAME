@@ -42,7 +42,7 @@ function validatedGameConfig(input: unknown) {
 
 async function dashboard(supabase: SupabaseClient, activityId: string | null) {
   const [{ data: activities, error }, { data: settings, error: settingsError }] = await Promise.all([
-    supabase.from("activities").select("id,name,start_at,end_at,is_active").order("start_at", { ascending: false }),
+    supabase.from("activities").select("id,name,start_at,end_at,is_active,is_paused,resume_at").order("start_at", { ascending: false }),
     supabase.from("game_settings").select("config").eq("id", true).maybeSingle()
   ]);
   if (error || settingsError) throw error || settingsError;
@@ -107,7 +107,10 @@ Deno.serve(async (request) => {
     if (body.action === "upsert-activity") {
       const activity = body.activity || {};
       if (!safeText(activity.name, 100) || Number.isNaN(Date.parse(activity.startAt)) || Number.isNaN(Date.parse(activity.endAt)) || new Date(activity.endAt) <= new Date(activity.startAt)) return json({ error: "請填寫有效的活動名稱與時間。" }, 400);
-      const values = { name: activity.name.trim(), start_at: new Date(activity.startAt).toISOString(), end_at: new Date(activity.endAt).toISOString(), is_active: Boolean(activity.isActive) };
+      const isPaused = activity.isPaused === true;
+      const resumeAt = isPaused && activity.resumeAt ? new Date(activity.resumeAt) : null;
+      if (resumeAt && (!Number.isFinite(resumeAt.getTime()) || resumeAt <= now() || resumeAt <= new Date(activity.startAt) || resumeAt >= new Date(activity.endAt))) return json({ error: "重新開放時間必須在現在之後，且位於活動開始與結束之間；不確定時間可留空。" }, 400);
+      const values = { name: activity.name.trim(), start_at: new Date(activity.startAt).toISOString(), end_at: new Date(activity.endAt).toISOString(), is_active: Boolean(activity.isActive), is_paused: isPaused, resume_at: resumeAt?.toISOString() || null };
       const query = activity.id ? supabase.from("activities").update(values).eq("id", activity.id) : supabase.from("activities").insert(values);
       const { data, error } = await query.select("id").single();
       if (error) throw error;

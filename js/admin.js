@@ -16,6 +16,7 @@ const SPEED_TYPES = [
 ];
 
 const escapeHtml = (value) => String(value ?? "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;");
+const statusLabel = (status) => ({ active: "進行中", paused: "暫停開放", upcoming: "未開始", ended: "已結束", closed: "關閉" }[status] || "關閉");
 const formatDate = (value) => value ? taipei.format(new Date(value)) : "-";
 const localInputValue = (value) => value ? new Date(value).toLocaleString("sv-SE", { timeZone: "Asia/Taipei", hour12: false }).replace(" ", "T").slice(0, 16) : "";
 
@@ -72,8 +73,8 @@ function renderDashboard() {
   const stats = dashboard.stats || {};
   root.innerHTML = `<section class="admin-page">
     <header class="admin-header"><div><p class="eyebrow">茶道社挑戰賽</p><h1>管理後台</h1></div><button class="admin-button is-quiet" data-admin-action="logout">登出</button></header>
-    <div class="admin-toolbar"><select class="admin-select" id="activity-select">${dashboard.activities.map((item) => `<option value="${escapeHtml(item.id)}" ${item.id === selectedActivityId ? "selected" : ""}>${escapeHtml(item.name)}${item.isActive ? "（開放）" : "（關閉）"}</option>`).join("")}</select><button class="admin-button is-quiet" data-admin-action="edit-activity">修改活動</button><button class="admin-button is-quiet" data-admin-action="new-activity">新增活動</button></div>
-    ${activity ? `<div class="admin-stats"><div class="admin-stat"><span>活動狀態</span><strong>${activity.status === "active" ? "進行中" : activity.status === "upcoming" ? "未開始" : "已結束"}</strong></div><div class="admin-stat"><span>參賽人數</span><strong>${stats.players || 0}</strong></div><div class="admin-stat"><span>遊玩總次數</span><strong>${stats.sessions || 0}</strong></div><div class="admin-stat"><span>活動截止</span><strong>${escapeHtml(formatDate(activity.endAt))}</strong></div></div>` : `<p class="admin-message">尚未建立活動。</p>`}
+    <div class="admin-toolbar"><select class="admin-select" id="activity-select">${dashboard.activities.map((item) => `<option value="${escapeHtml(item.id)}" ${item.id === selectedActivityId ? "selected" : ""}>${escapeHtml(item.name)}（${statusLabel(item.status)}）</option>`).join("")}</select><button class="admin-button is-quiet" data-admin-action="edit-activity">修改活動</button><button class="admin-button is-quiet" data-admin-action="new-activity">新增活動</button></div>
+    ${activity ? `<div class="admin-stats"><div class="admin-stat"><span>活動狀態</span><strong>${statusLabel(activity.status)}</strong></div><div class="admin-stat"><span>參賽人數</span><strong>${stats.players || 0}</strong></div><div class="admin-stat"><span>遊玩總次數</span><strong>${stats.sessions || 0}</strong></div><div class="admin-stat"><span>活動截止</span><strong>${escapeHtml(formatDate(activity.endAt))}</strong></div></div>` : `<p class="admin-message">尚未建立活動。</p>`}
     <nav class="admin-tabs"><button class="admin-tab ${activeTab === "ranking" ? "is-active" : ""}" data-admin-action="tab" data-tab="ranking">排行榜</button><button class="admin-tab ${activeTab === "players" ? "is-active" : ""}" data-admin-action="tab" data-tab="players">搜尋玩家</button><button class="admin-tab ${activeTab === "public" ? "is-active" : ""}" data-admin-action="tab" data-tab="public">公開排行</button><button class="admin-tab ${activeTab === "speed" ? "is-active" : ""}" data-admin-action="tab" data-tab="speed">遊戲速度</button></nav>
     <div id="admin-content"></div></section>`;
   document.getElementById("activity-select").addEventListener("change", (event) => { selectedActivityId = event.target.value; loadDashboard(); });
@@ -175,8 +176,11 @@ async function searchPlayer() {
 
 function renderActivityForm(activity) {
   const formActivity = activity || {};
-  root.innerHTML = `<section class="admin-login"><div class="screen-header"><p class="eyebrow">活動設定</p><h1>${activity ? "修改活動" : "建立活動"}</h1></div><form class="entry-card activity-form" id="activity-form" data-activity-id="${escapeHtml(formActivity.id || "")}"><label class="input-group full-width"><span>活動名稱</span><input name="name" maxlength="100" value="${escapeHtml(formActivity.name || "")}" required></label><label class="input-group"><span>開始時間（台灣）</span><input class="admin-date" type="datetime-local" name="startAt" value="${escapeHtml(localInputValue(formActivity.startAt))}" required></label><label class="input-group"><span>結束時間（台灣）</span><input class="admin-date" type="datetime-local" name="endAt" value="${escapeHtml(localInputValue(formActivity.endAt))}" required></label><label class="toggle-label full-width"><input type="checkbox" name="isActive" ${formActivity.isActive ? "checked" : ""}> 開放此活動</label><p class="form-error" id="activity-error" hidden></p><div class="admin-actions full-width"><button class="primary-button" type="submit">儲存活動</button><button class="secondary-button" type="button" data-admin-action="back-dashboard">返回後台</button></div></form></section>`;
-  document.getElementById("activity-form").addEventListener("submit", saveActivity);
+  const pauseEnabled = Boolean(formActivity.isPaused && (!formActivity.resumeAt || new Date(formActivity.resumeAt) > new Date()));
+  root.innerHTML = `<section class="admin-login"><div class="screen-header"><p class="eyebrow">活動設定</p><h1>${activity ? "修改活動" : "建立活動"}</h1></div><form class="entry-card activity-form" id="activity-form" data-activity-id="${escapeHtml(formActivity.id || "")}"><label class="input-group full-width"><span>活動名稱</span><input name="name" maxlength="100" value="${escapeHtml(formActivity.name || "")}" required></label><label class="input-group"><span>開始時間（台灣）</span><input class="admin-date" type="datetime-local" name="startAt" value="${escapeHtml(localInputValue(formActivity.startAt))}" required></label><label class="input-group"><span>結束時間（台灣）</span><input class="admin-date" type="datetime-local" name="endAt" value="${escapeHtml(localInputValue(formActivity.endAt))}" required></label><label class="toggle-label full-width"><input type="checkbox" name="isActive" ${formActivity.isActive ? "checked" : ""}> 開放此活動</label><label class="toggle-label full-width"><input type="checkbox" name="isPaused" ${pauseEnabled ? "checked" : ""}> 暫停開放（停止新挑戰）</label><label class="input-group full-width"><span>預計重新開放時間（台灣，可留空）</span><input class="admin-date" type="datetime-local" name="resumeAt" value="${escapeHtml(pauseEnabled ? localInputValue(formActivity.resumeAt) : "")}" ${pauseEnabled ? "" : "disabled"}></label><p class="admin-help full-width">暫停時，玩家入口會顯示公告；已開始的挑戰仍可交成績。填寫時間會自動恢復，留空則等待手動取消暫停。請保持「開放此活動」勾選，重新開放時間須早於活動結束。</p><p class="form-error" id="activity-error" hidden></p><div class="admin-actions full-width"><button class="primary-button" type="submit">儲存活動</button><button class="secondary-button" type="button" data-admin-action="back-dashboard">返回後台</button></div></form></section>`;
+  const form = document.getElementById("activity-form");
+  form.addEventListener("submit", saveActivity);
+  form.elements.isPaused.addEventListener("change", () => { form.elements.resumeAt.disabled = !form.elements.isPaused.checked; if (form.elements.isPaused.checked) form.elements.isActive.checked = true; });
 }
 
 async function saveActivity(event) {
@@ -184,7 +188,7 @@ async function saveActivity(event) {
   const form = event.currentTarget;
   const error = document.getElementById("activity-error");
   try {
-    const saved = await adminCall("upsert-activity", { activity: { id: form.dataset.activityId || null, name: form.name.value.trim(), startAt: new Date(`${form.startAt.value}+08:00`).toISOString(), endAt: new Date(`${form.endAt.value}+08:00`).toISOString(), isActive: form.isActive.checked } });
+    const saved = await adminCall("upsert-activity", { activity: { id: form.dataset.activityId || null, name: form.name.value.trim(), startAt: new Date(`${form.startAt.value}+08:00`).toISOString(), endAt: new Date(`${form.endAt.value}+08:00`).toISOString(), isActive: form.isActive.checked, isPaused: form.elements.isPaused.checked, resumeAt: form.elements.isPaused.checked && form.elements.resumeAt.value ? new Date(`${form.elements.resumeAt.value}+08:00`).toISOString() : null } });
     selectedActivityId = saved.id;
     await loadDashboard();
   } catch (requestError) { error.textContent = requestError.message; error.hidden = false; }

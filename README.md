@@ -116,6 +116,16 @@ http://localhost:8000/index.html?demo=1&test=short
 
 ## 後續修改重點
 
+### 臨時暫停與自動重新開放
+
+後台選擇活動 →「修改活動」→ 勾選「暫停開放」，保持「開放此活動」勾選，再儲存。
+可填台灣時間的「預計重新開放時間」以自動恢復；留空則需手動取消暫停。
+重新開放時間必須在現在之後，且位於活動開始與結束之間。
+玩家入口會顯示暫停通知與預計時間，每 15 秒重新確認狀態。
+伺服器會阻止新挑戰；暫停前已開始的挑戰仍可在原活動時間內完成交分。
+已過期的自動暫停不影響新挑戰；編輯活動時也會顯示為未暫停。
+驗證：`node scripts/check-activity-pause.cjs`。
+
 - 遊戲題庫、採茶機率、前端即時計分：`js/data.js`
 - 正式計分同步規則：`supabase/functions/submit-game-result/index.ts`
 - 活動資料庫欄位與 RLS：`supabase/migrations/20260831_competition_system.sql`

@@ -9,9 +9,10 @@ Deno.serve(async (request) => {
     const name = String(body.name || "").trim();
     if (!validPlayer(studentId, name)) return json({ error: "學號或姓名格式不符合規範。" }, 400);
     const supabase = service();
-    const { data: activities, error: activityError } = await supabase.from("activities").select("id,name,start_at,end_at,is_active").eq("is_active", true).order("start_at", { ascending: true });
+    const { data: activities, error: activityError } = await supabase.from("activities").select("id,name,start_at,end_at,is_active,is_paused,resume_at").eq("is_active", true).order("start_at", { ascending: true });
     if (activityError) throw activityError;
-    const activity = activities?.find((item) => activityStatus(item) === "active");
+    const activity = activities?.find((item) => ["active", "paused"].includes(activityStatus(item)));
+    if (activity && activityStatus(activity) === "paused") return json({ error: "活動暫停開放，請返回首頁查看重新開放時間。" }, 403);
     if (!activity) return json({ error: "目前不是可開始正式挑戰的活動時間。" }, 403);
     const token = `${crypto.randomUUID()}${crypto.randomUUID()}`;
     const startedAt = now().toISOString();
