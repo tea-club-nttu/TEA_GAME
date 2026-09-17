@@ -42,7 +42,7 @@ function validatedGameConfig(input: unknown) {
 
 async function dashboard(supabase: SupabaseClient, activityId: string | null) {
   const [{ data: activities, error }, { data: settings, error: settingsError }] = await Promise.all([
-    supabase.from("activities").select("id,name,start_at,end_at,is_active,is_paused,resume_at").order("start_at", { ascending: false }),
+    supabase.from("activities").select("id,name,start_at,end_at,is_active,is_paused,resume_at,stages").order("start_at", { ascending: false }),
     supabase.from("game_settings").select("config").eq("id", true).maybeSingle()
   ]);
   if (error || settingsError) throw error || settingsError;
@@ -69,6 +69,33 @@ Deno.serve(async (request) => {
   try {
     const body = await request.json();
     const { supabase, user } = await requireAdmin(request);
+    if (body.action === "questions") {
+      const { data, error } = await supabase.from("quiz_questions").select("*").order("created_at", { ascending: true }).order("id");
+      if (error) throw error;
+      return json({ questions: data || [] });
+    }
+    if (body.action === "save-question") {
+      const q = body.question || {};
+      if (!safeText(q.question, 500) || !["easy", "medium", "hard"].includes(q.difficulty) || !Array.isArray(q.options) || q.options.length !== 4 ||
+          q.options.some((o: { id: unknown; label: unknown }) => !safeText(o.id, 60) || !safeText(o.label, 200)) ||
+          new Set(q.options.map((o: { id: string }) => o.id)).size !== 4 || !q.options.some((o: { id: string }) => o.id === q.correctOptionId)) return json({ error: "請填寫題目、四個選項、正確答案與難度。" }, 400);
+      const values = { question: q.question.trim(), difficulty: q.difficulty, options: q.options.map((o: { id: string; label: string }) => ({ id: o.id, label: o.label.trim() })), correct_option_id: q.correctOptionId };
+      const query = q.id ? supabase.from("quiz_questions").update(values).eq("id", q.id) : supabase.from("quiz_questions").insert({ ...values, id: crypto.randomUUID(), is_default: false, enabled: false });
+      const { data, error } = await query.select("id").single();
+      if (error) throw error;
+      return json({ ok: true, id: data.id });
+    }
+    if (body.action === "toggle-question") {
+      if (typeof body.id !== "string" || typeof body.enabled !== "boolean") return json({ error: "題目設定格式不正確。" }, 400);
+      if (body.enabled) {
+        const { count, error } = await supabase.from("quiz_questions").select("id", { count: "exact", head: true }).eq("enabled", true).neq("id", body.id);
+        if (error) throw error;
+        if ((count || 0) >= 50) return json({ error: "每場最多啟用 50 題，請先取消其他題目。" }, 400);
+      }
+      const { data, error } = await supabase.from("quiz_questions").update({ enabled: body.enabled }).eq("id", body.id).select("id").single();
+      if (error) throw error;
+      return json({ ok: true, id: data.id });
+    }
     if (body.action === "dashboard") return json(await dashboard(supabase, body.activityId || null));
 
     if (body.action === "update-game-settings") {
@@ -107,10 +134,17 @@ Deno.serve(async (request) => {
     if (body.action === "upsert-activity") {
       const activity = body.activity || {};
       if (!safeText(activity.name, 100) || Number.isNaN(Date.parse(activity.startAt)) || Number.isNaN(Date.parse(activity.endAt)) || new Date(activity.endAt) <= new Date(activity.startAt)) return json({ error: "請填寫有效的活動名稱與時間。" }, 400);
+      const stages = activity.stages || { harvest: true, knowledge: true, quiz: true };
+      if (["harvest", "knowledge", "quiz"].some((key) => typeof stages[key] !== "boolean") || !Object.values(stages).some((enabled) => enabled === true)) return json({ error: "請至少勾選一個關卡。" }, 400);
+      if (stages.quiz) {
+        const { count, error } = await supabase.from("quiz_questions").select("id", { count: "exact", head: true }).eq("enabled", true);
+        if (error) throw error;
+        if (!count || count > 50) return json({ error: "問答關需要啟用 1～50 題，請先到題庫勾選。" }, 400);
+      }
       const isPaused = activity.isPaused === true;
       const resumeAt = isPaused && activity.resumeAt ? new Date(activity.resumeAt) : null;
       if (resumeAt && (!Number.isFinite(resumeAt.getTime()) || resumeAt <= now() || resumeAt <= new Date(activity.startAt) || resumeAt >= new Date(activity.endAt))) return json({ error: "重新開放時間必須在現在之後，且位於活動開始與結束之間；不確定時間可留空。" }, 400);
-      const values = { name: activity.name.trim(), start_at: new Date(activity.startAt).toISOString(), end_at: new Date(activity.endAt).toISOString(), is_active: Boolean(activity.isActive), is_paused: isPaused, resume_at: resumeAt?.toISOString() || null };
+      const values = { name: activity.name.trim(), start_at: new Date(activity.startAt).toISOString(), end_at: new Date(activity.endAt).toISOString(), is_active: Boolean(activity.isActive), stages: { harvest: stages.harvest, knowledge: stages.knowledge, quiz: stages.quiz }, is_paused: isPaused, resume_at: resumeAt?.toISOString() || null };
       const query = activity.id ? supabase.from("activities").update(values).eq("id", activity.id) : supabase.from("activities").insert(values);
       const { data, error } = await query.select("id").single();
       if (error) throw error;

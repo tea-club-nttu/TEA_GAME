@@ -23,6 +23,7 @@
 
   const state = {
     activity: null,
+    questionCount: data.quiz.questions.length,
     player: { studentId: "", name: "" },
     gameSession: null,
     harvestScore: 0,
@@ -116,11 +117,21 @@
     root.innerHTML = `<section class="screen status-screen"><div class="status-card"><p class="eyebrow">需要活動系統</p><h2>成績系統尚未設定</h2><p class="lead">請由茶道社管理員完成 Supabase 設定後，再開放正式挑戰。</p></div></section>`;
   }
 
+  const stages = () => state.activity?.stages || { harvest: true, knowledge: true, quiz: true };
+  function nextStage(after = "") {
+    const order = ["harvest", "knowledge", "quiz"];
+    const next = order.slice(order.indexOf(after) + 1).find((key) => stages()[key]);
+    if (next === "harvest") startHarvest();
+    else if (next === "knowledge") { state.cardIndex = 0; renderKnowledge(); }
+    else if (next === "quiz") startQuiz();
+    else submitResult();
+  }
+
   function renderHome() {
     resetRound();
     root.innerHTML = `
       <section class="screen home-screen">
-        <div class="screen-header"><p class="eyebrow">${escapeHtml(state.activity?.name || `${data.clubName}挑戰賽`)}</p><h1>${escapeHtml(data.gameTitle)}</h1><p class="lead">${escapeHtml(data.home.intro)}</p></div>
+        <div class="screen-header"><p class="eyebrow">${escapeHtml(state.activity?.name || `${data.clubName}挑戰賽`)}</p><h1>${escapeHtml(data.gameTitle)}</h1><p class="lead">本活動包含：${[["harvest", "採茶"], ["knowledge", "知識卡"], ["quiz", `${state.questionCount} 題問答`]].filter(([key]) => stages()[key]).map(([, label]) => escapeHtml(label)).join("、")}。</p></div>
         <div class="activity-banner"><span class="status-dot"></span><span>活動進行中・截止 ${escapeHtml(formatTaipei(state.activity?.endAt))}</span></div>
         <div class="home-visual" aria-hidden="true"><span class="steam"></span><span class="steam"></span><span class="steam"></span><span class="tea-cup"></span></div>
         <button class="primary-button" type="button" data-action="start">${escapeHtml(data.home.startButton)}</button>
@@ -133,9 +144,10 @@
       <section class="screen rules-screen">
         <div class="screen-header"><p class="eyebrow">開始前</p><h2>${escapeHtml(data.rules.title)}</h2><p class="lead">${escapeHtml(data.rules.intro)}</p></div>
         <article class="rules-card"><div class="rule-list">
-          <div class="rule-item"><span class="rule-icon">1</span><div><h3>30 秒採茶</h3><p>越到後面，茶葉出現與下落速度越快。採下一心二葉與單芽，避開老葉與病葉。</p></div></div>
-          <div class="rule-item"><span class="rule-icon">2</span><div><h3>選對才得分</h3><p>${pickingRules}；漏採正確茶芽 ${data.teaPicking.missPenalty} 分。</p></div></div>
-          <div class="rule-item"><span class="rule-icon">3</span><div><h3>快問快答</h3><p>題目和選項每次都會洗牌。每題限時 ${data.quiz.secondsPerQuestion} 秒，答得快、連續答對都有加成。</p></div></div>
+          ${stages().harvest ? `<div class="rule-item"><span class="rule-icon">1</span><div><h3>30 秒採茶</h3><p>越到後面，茶葉出現與下落速度越快。採下一心二葉與單芽，避開老葉與病葉。</p></div></div>
+          <div class="rule-item"><span class="rule-icon">2</span><div><h3>選對才得分</h3><p>${pickingRules}；漏採正確茶芽 ${data.teaPicking.missPenalty} 分。</p></div></div>` : ""}
+          ${stages().knowledge ? `<div class="rule-item"><span class="rule-icon">知</span><div><h3>花東茶知識卡</h3><p>閱讀茶知識，這一段不計分。</p></div></div>` : ""}
+          ${stages().quiz ? `<div class="rule-item"><span class="rule-icon">問</span><div><h3>${state.questionCount} 題快問快答</h3><p>題目和選項每次都會洗牌。每題限時 ${data.quiz.secondsPerQuestion} 秒，答得快、連續答對都有加成。</p></div></div>` : ""}
           <div class="rule-item"><span class="rule-icon">4</span><div><h3>最高分入榜</h3><p>可重複挑戰；完整排行榜僅供茶道社管理員於活動後整理公布。</p></div></div>
         </div></article><button class="primary-button" type="button" data-action="register">${escapeHtml(data.rules.startButton)}</button>
       </section>`;
@@ -174,8 +186,15 @@
     button.disabled = true;
     button.textContent = "正在建立挑戰…";
     try {
-      state.gameSession = demoMode ? { id: crypto.randomUUID(), token: "demo-session", startedAt: new Date().toISOString() } : (await api.createSession(state.player)).session;
-      startHarvest();
+      if (demoMode) state.gameSession = { id: crypto.randomUUID(), token: "demo-session", startedAt: new Date().toISOString() };
+      else {
+        const response = await api.createSession(state.player);
+        state.gameSession = response.session;
+        state.activity = response.activity;
+        data.quiz.questions = response.questions || data.quiz.questions;
+        state.questionCount = data.quiz.questions.length;
+      }
+      sound.prime(); nextStage();
     } catch (requestError) {
       renderRegistration(requestError.message || "無法建立挑戰，請確認網路後再試一次。");
     }
@@ -187,7 +206,7 @@
     state.harvestHits = Object.fromEntries(data.teaPicking.types.map((type) => [type.id, 0]));
     state.activeItems.clear(); state.harvestRunning = true; state.harvestStartedAt = Date.now();
     root.innerHTML = `
-      <section class="screen harvest-screen"><div class="screen-header"><p class="eyebrow">第一關</p><h2>採茶遊戲</h2></div>
+      <section class="screen harvest-screen"><div class="screen-header"><p class="eyebrow">採茶關</p><h2>採茶遊戲</h2></div>
         <div class="stats-grid"><div class="stat-chip"><span class="stat-label">時間</span><span class="stat-value" id="time-left">${data.teaPicking.durationSeconds}</span></div><div class="stat-chip"><span class="stat-label">分數</span><span class="stat-value" id="harvest-score">0</span></div><div class="stat-chip"><span class="stat-label">採到</span><span class="stat-value" id="harvest-count">0</span></div></div>
         <div class="tea-field" id="tea-field"><div class="field-message">採下一心二葉與單芽，避開老葉與病葉；漏採 ${data.teaPicking.missPenalty}。</div></div>
         <div class="legend-row">${data.teaPicking.types.map((type) => `<div class="legend-item"><img src="${escapeHtml(type.asset)}" alt=""><span>${escapeHtml(type.label)} ${type.score > 0 ? "+" : ""}${type.score}</span></div>`).join("")}</div>
@@ -279,7 +298,7 @@
   function finishHarvest() {
     if (!state.harvestRunning) return;
     state.harvestRunning = false; clearTimers(); sound.play("finish");
-    root.innerHTML = `<section class="screen"><div class="result-card"><p class="eyebrow">第一關完成</p><h2>你成功採了</h2><div class="result-number">${state.harvestCount}</div><p class="lead">片高品質茶芽！即時計分 ${state.harvestScore} 分。</p><button class="primary-button" type="button" data-action="knowledge">下一步</button></div></section>`;
+    root.innerHTML = `<section class="screen"><div class="result-card"><p class="eyebrow">第一關完成</p><h2>你成功採了</h2><div class="result-number">${state.harvestCount}</div><p class="lead">片高品質茶芽！即時計分 ${state.harvestScore} 分。</p><button class="primary-button" type="button" data-action="after-harvest">下一步</button></div></section>`;
   }
 
   function renderKnowledge() {
@@ -288,9 +307,9 @@
     const card = cards[state.cardIndex];
     const isLastCard = state.cardIndex === cards.length - 1;
     root.innerHTML = `
-      <section class="screen knowledge-screen"><div class="screen-header"><p class="eyebrow">第二關</p><h2>快速認識花東茶</h2></div>
+      <section class="screen knowledge-screen"><div class="screen-header"><p class="eyebrow">知識卡</p><h2>快速認識花東茶</h2></div>
         <article class="knowledge-card" style="--card-accent: ${escapeHtml(card.accent)};"><div class="card-progress"><span style="--card-seconds: ${data.knowledge.autoSeconds}s;"></span></div><h3 class="knowledge-title">${escapeHtml(card.title)}</h3><p class="knowledge-body">${textToHtml(card.body)}</p></article>
-        <div class="dot-row">${cards.map((_, index) => `<span class="dot ${index === state.cardIndex ? "is-active" : ""}"></span>`).join("")}</div><button class="primary-button" type="button" data-action="${isLastCard ? "quiz" : "next-card"}">${isLastCard ? "開始測驗" : "下一張"}</button>
+        <div class="dot-row">${cards.map((_, index) => `<span class="dot ${index === state.cardIndex ? "is-active" : ""}"></span>`).join("")}</div><button class="primary-button" type="button" data-action="${isLastCard ? "after-knowledge" : "next-card"}">${isLastCard ? (stages().quiz ? "開始測驗" : "完成挑戰") : "下一張"}</button>
       </section>`;
     if (!isLastCard) addTimer(setTimeout(() => { state.cardIndex += 1; sound.play("card"); renderKnowledge(); }, data.knowledge.autoSeconds * 1000));
   }
@@ -307,7 +326,7 @@
     const questionNumber = state.questionIndex + 1;
     state.questionStartedAt = Date.now();
     root.innerHTML = `
-      <section class="screen quiz-screen"><div class="screen-header"><p class="eyebrow">第三關</p><h2>花東茶五題測驗</h2></div>
+      <section class="screen quiz-screen"><div class="screen-header"><p class="eyebrow">問答關</p><h2>花東茶 ${state.quizQuestions.length} 題測驗</h2></div>
         <div class="quiz-timer"><div class="quiz-timer-row"><span>剩餘時間</span><strong id="quiz-time">${data.quiz.secondsPerQuestion}</strong></div><span class="quiz-timer-bar" id="quiz-timer-bar"></span></div>
         <article class="question-card"><p class="question-count">第 ${questionNumber} / ${state.quizQuestions.length} 題・${escapeHtml({ easy: "基礎", medium: "進階", hard: "挑戰" }[question.difficulty] || "基礎")}</p><h3>${escapeHtml(question.question)}</h3><div class="option-list">${question.options.map((option, index) => `<button class="option-button" type="button" data-option-id="${escapeHtml(option.id)}">${String.fromCharCode(65 + index)}. ${escapeHtml(option.label)}</button>`).join("")}</div></article>
         <div class="stats-grid"><div class="stat-chip"><span class="stat-label">答對</span><span class="stat-value">${state.quizCorrect}</span></div><div class="stat-chip"><span class="stat-label">連擊</span><span class="stat-value">${state.quizCombo}</span></div><div class="stat-chip"><span class="stat-label">採茶</span><span class="stat-value">${state.harvestScore}</span></div></div>
@@ -391,6 +410,7 @@
       const response = await api.getActivity();
       applyGameConfig(response.gameConfig);
       state.activity = response.activity;
+      state.questionCount = response.questionCount ?? data.quiz.questions.length;
       if (response.status === "active") renderHome();
       else if (response.status === "paused") {
         const reopen = response.activity?.resumeAt ? new Intl.DateTimeFormat("zh-TW", { timeZone: "Asia/Taipei", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit", hour12: false }).format(new Date(response.activity.resumeAt)) : null;
@@ -409,7 +429,8 @@
     const action = target.dataset.action;
     if (action === "start") renderRules();
     if (action === "register") renderRegistration();
-    if (action === "knowledge") { state.cardIndex = 0; renderKnowledge(); }
+    if (action === "after-harvest") nextStage("harvest");
+    if (action === "after-knowledge") nextStage("knowledge");
     if (action === "next-card") { state.cardIndex += 1; sound.play("card"); renderKnowledge(); }
     if (action === "quiz") startQuiz();
     if (action === "restart") { resetRound(); loadActivity(); }

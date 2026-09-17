@@ -19,7 +19,7 @@ export function activityStatus(activity: { start_at: string; end_at: string; is_
   return "active";
 }
 
-export const publicActivity = (activity: Record<string, unknown>) => ({ id: activity.id, name: activity.name, startAt: activity.start_at, endAt: activity.end_at, isActive: activity.is_active, isPaused: activity.is_paused, resumeAt: activity.resume_at });
+export const publicActivity = (activity: Record<string, unknown>) => ({ id: activity.id, name: activity.name, startAt: activity.start_at, endAt: activity.end_at, isActive: activity.is_active, isPaused: activity.is_paused, resumeAt: activity.resume_at, stages: activity.stages || { harvest: true, knowledge: true, quiz: true } });
 
 export function validPlayer(studentId: unknown, name: unknown) {
   const safe = /^[\p{L}\p{N}\s-]+$/u;

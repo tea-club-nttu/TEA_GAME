@@ -22,7 +22,7 @@ assert.equal(status({ is_paused: true }, new Date('2026-09-16T06:00:00Z')), 'end
 // A stale browser must not bypass the server-side pause guard.
 async function verifyStart(paused, resumeAt, expected) {
   let handler, inserts = 0;
-  const activity = { ...base, id: 'test', is_paused: paused, resume_at: resumeAt };
+  const activity = { ...base, id: 'test', is_paused: paused, resume_at: resumeAt, stages: { harvest: true, knowledge: false, quiz: false } };
   const query = { select() { return this; }, eq() { return this; }, order: async () => ({ data: [activity] }) };
   const db = { from(name) {
     if (name === 'activities') return query;

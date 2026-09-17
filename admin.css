@@ -240,6 +240,13 @@
   max-width: 100%;
 }
 
+.activity-form fieldset { min-width: 0; margin: 0; }
+.activity-form textarea {
+  width: 100%; min-height: 100px; box-sizing: border-box;
+  border: 1px solid rgba(84, 105, 76, 0.25); border-radius: var(--radius);
+  padding: 10px; font: inherit; resize: vertical;
+}
+
 .toggle-label {
   display: flex;
   align-items: center;
